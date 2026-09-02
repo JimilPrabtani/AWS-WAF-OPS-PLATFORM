@@ -1,0 +1,71 @@
+# Everything that can be checked without touching AWS. No credentials, no OIDC,
+# no cost -- so it runs on every push and stays fast.
+name: validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Format
+        run: terraform fmt -check -recursive -diff
+
+      - name: Validate modules and environments
+        run: |
+          set -e
+          for dir in modules/waf modules/static-site modules/alb-target modules/observability modules/api envs/dev envs/prod envs/data envs/security; do
+            echo "::group::$dir"
+            terraform -chdir="$dir" init -backend=false -input=false
+            terraform -chdir="$dir" validate
+            echo "::endgroup::"
+          done
+
+      - name: Module contract tests
+        run: terraform -chdir=modules/waf test -verbose
+
+      - uses: terraform-linters/setup-tflint@v4
+      - name: Lint
+        run: tflint --recursive --format compact
+
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: .
+          framework: terraform
+          quiet: true
+          soft_fail: false
+
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: pip install -e "./wafops[dev]"
+
+      - name: Lint
+        run: ruff check wafops
+
+      - name: Unit tests
+        # Offline by design -- nothing here touches AWS.
+        run: pytest wafops/tests -v

@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and fill in. This file is the only place your
+# account-specific values live.
+
+state_bucket_name = "wafops-tfstate-<YOUR_ACCOUNT_ID>"
+github_repository = "<your-github-username>/waf-ops-platform"
+
+# Your own IAM user ARN, so you can assume the deploy role locally.
+# Find it with: aws sts get-caller-identity
+human_principal_arns = ["arn:aws:iam::<YOUR_ACCOUNT_ID>:user/<YOUR_IAM_USER>"]
+
+# Set to false only if your IAM user has no MFA device configured yet.
+require_mfa = true
+
+# GitHub repo (owner/name) of the wandor frontend, for its CI deploy role.
+# Leave commented out to skip creating that role.
+# wandor_repository = "<your-github-username>/wandor"

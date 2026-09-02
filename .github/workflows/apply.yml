@@ -1,0 +1,44 @@
+# Apply runs only after a human approves the GitHub Environment.
+#
+# That approval is what makes the OIDC split work: the apply role's trust policy
+# only accepts a subject of `environment:dev` or `environment:prod`, and GitHub
+# will not mint a token with that subject until the environment's protection
+# rules are satisfied. A pull request token can never match it.
+name: apply
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Environment to apply
+        required: true
+        type: choice
+        options: [dev, prod]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }} # <- the approval gate
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assume the apply role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE }}
+          aws-region: us-east-1
+          role-session-name: gha-apply-${{ github.run_id }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Apply
+        run: |
+          terraform -chdir=envs/${{ inputs.environment }} init -input=false
+          terraform -chdir=envs/${{ inputs.environment }} apply -auto-approve

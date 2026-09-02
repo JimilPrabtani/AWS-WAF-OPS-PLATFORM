@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WAF Ops Platform — Target</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font: 16px/1.6 ui-sans-serif, system-ui, sans-serif; margin: 0; padding: 3rem 1.5rem;
+         background: #0f1416; color: #e6ebe8; }
+  main { max-width: 44rem; margin: 0 auto; }
+  h1 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 0.5rem; }
+  p { color: #98a5a1; max-width: 60ch; }
+  code { font-family: ui-monospace, monospace; background: #1b2226; padding: 0.15em 0.4em; border-radius: 3px; }
+  ul { color: #98a5a1; }
+</style>
+</head>
+<body>
+<main>
+  <h1>WAF Ops Platform</h1>
+  <p>Origin content served from a private S3 bucket, reachable only through CloudFront with
+     Origin Access Control. Every request to this page is evaluated by an AWS WAF Web ACL first.</p>
+  <p>This page exists as a target for the attack and false-positive suites. It is deliberately
+     static and contains no application logic.</p>
+  <ul>
+    <li>Direct origin access returns <code>403</code> — verified in CI.</li>
+    <li>Blocked requests return a JSON body, not a bare status code.</li>
+    <li>Request logs land in CloudWatch Logs under <code>aws-waf-logs-*</code>.</li>
+  </ul>
+</main>
+</body>
+</html>

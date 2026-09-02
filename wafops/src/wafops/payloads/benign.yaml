@@ -1,0 +1,82 @@
+# Legitimate traffic. THIS is the suite that matters.
+#
+# Blocking attacks is easy -- block everything and you score 100%. Not blocking
+# customers is the hard part, and it is the failure mode that actually takes
+# sites down. Every entry here must be allowed; any block is a regression.
+
+- id: root-page
+  method: GET
+  path: /
+  expect: allowed
+
+- id: search-with-apostrophe
+  method: GET
+  path: /
+  query: {q: "O'Brien's bakery"}
+  # A bare apostrophe is the classic SQLi false positive.
+  expect: allowed
+
+- id: search-with-sql-word
+  method: GET
+  path: /
+  query: {q: "how to select a database union type"}
+  # Contains 'select' and 'union' in ordinary prose.
+  expect: allowed
+
+- id: search-with-angle-brackets
+  method: GET
+  path: /
+  query: {q: "is 5 < 10 and 20 > 15?"}
+  expect: allowed
+
+- id: unicode-query
+  method: GET
+  path: /
+  query: {q: "café naïve 日本語 emoji 🎉"}
+  expect: allowed
+
+- id: long-legitimate-query
+  method: GET
+  path: /
+  query_repeat: {q: ["lorem ipsum dolor sit amet ", 40]}
+  expect: allowed
+
+- id: base64-blob
+  method: GET
+  path: /
+  query: {token: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0In0"}
+  expect: allowed
+
+- id: markdown-in-body
+  method: POST
+  path: /
+  body: "# Heading\n\nSome **bold** text with a [link](https://example.com) and `code`."
+  origin: true
+  expect: allowed
+
+- id: json-api-post
+  method: POST
+  path: /
+  json: {name: "Ada Lovelace", note: "Uses <> and & in prose"}
+  origin: true
+  expect: allowed
+
+- id: firefox-user-agent
+  method: GET
+  path: /
+  user_agent: "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0"
+  expect: allowed
+
+- id: googlebot-user-agent
+  method: GET
+  path: /
+  user_agent: "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+  expect: allowed
+
+- id: monitoring-user-agent
+  method: GET
+  path: /
+  # The prototype BLOCKED this. Its own test suite only escaped because it
+  # spoofed a Chrome user agent.
+  user_agent: "python-requests/2.32.0"
+  expect: allowed

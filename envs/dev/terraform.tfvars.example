@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+
+region = "us-east-1"
+name   = "wafops-dev"
+
+# Your public address. Rules that set exempt_trusted_ips will skip you.
+#   curl -s https://checkip.amazonaws.com
+trusted_ip_cidrs = ["203.0.113.4/32"]
+
+# The origin_check rule treats these as first-party. The default matches the
+# ALB's own DNS name, which is what the test suite sends.
+allowed_origins = ["^https?://.*\\.elb\\.amazonaws\\.com$"]
+
+# Optional. AWS emails a confirmation link that you must click.
+# alarm_email = "you@example.com"

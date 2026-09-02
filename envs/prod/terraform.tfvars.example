@@ -1,0 +1,17 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+
+region = "us-east-1"   # cannot be changed; CLOUDFRONT scope requires it
+name   = "wafops-prod"
+
+# Keep this list short in prod, or empty.
+trusted_ip_cidrs = []
+
+# Tighten this to your distribution's domain after the first apply, e.g.
+#   ["^https://d111111abcdef8\\.cloudfront\\.net$"]
+allowed_origins = ["^https://.*\\.cloudfront\\.net$"]
+
+# alarm_email = "you@example.com"
+
+# The wandor build to serve. Run `npm run build` in wandor first.
+# Leave unset to serve the placeholder page instead.
+content_dir = "../../../wandor/dist"

@@ -1,0 +1,74 @@
+# Produces a plan for every pull request and posts it as a comment, using a
+# READ-ONLY role. A contributor can see exactly what their change would do
+# without being able to do it.
+name: plan
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  id-token: write      # required to request the OIDC token
+  pull-requests: write # required to post the plan comment
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [dev, prod]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # No AWS access key anywhere. GitHub mints a short-lived JWT describing
+      # this exact run; STS validates it against the role's trust policy and
+      # returns credentials that expire in an hour.
+      - name: Assume the plan role
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE }}
+          aws-region: us-east-1
+          role-session-name: gha-plan-${{ github.run_id }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - name: Plan
+        id: plan
+        run: |
+          terraform -chdir=envs/${{ matrix.env }} init -input=false
+          terraform -chdir=envs/${{ matrix.env }} plan -no-color -out=tfplan | tee plan.txt
+          terraform -chdir=envs/${{ matrix.env }} show -json tfplan > tfplan.json
+
+      - name: Policy gate
+        run: |
+          curl -sSL -o conftest.tar.gz https://github.com/open-policy-agent/conftest/releases/download/v0.56.0/conftest_0.56.0_Linux_x86_64.tar.gz
+          tar xzf conftest.tar.gz conftest
+          ./conftest test --policy policies/conftest envs/${{ matrix.env }}/tfplan.json
+
+      - name: Comment the plan
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const plan = fs.readFileSync('plan.txt', 'utf8');
+            const body = [
+              '### Terraform plan — `${{ matrix.env }}`',
+              '',
+              '<details><summary>Show plan</summary>',
+              '',
+              '```terraform',
+              plan.length > 60000 ? plan.slice(0, 60000) + '\n... truncated' : plan,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });

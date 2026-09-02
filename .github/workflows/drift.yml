@@ -1,0 +1,56 @@
+# The cost guard.
+#
+# This project's budget posture is "nothing runs at rest". That is a claim, and
+# an unverified claim is a wish -- so this job checks it daily and fails loudly
+# if anything tagged for this project is still alive.
+#
+# Turning the budget constraint into a demonstrated control is worth more than
+# the constraint itself.
+name: drift
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 3 * * *"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PLAN_ROLE }}
+          aws-region: us-east-1
+          role-session-name: gha-drift-${{ github.run_id }}
+
+      - name: Look for anything still running
+        run: |
+          set -euo pipefail
+          found=0
+
+          echo "== WAF Web ACLs =="
+          for scope in REGIONAL CLOUDFRONT; do
+            names=$(aws wafv2 list-web-acls --scope "$scope" --region us-east-1 \
+              --query "WebACLs[?starts_with(Name, 'wafops-')].Name" --output text)
+            if [ -n "$names" ]; then echo "$scope: $names"; found=1; fi
+          done
+
+          echo "== Load balancers =="
+          albs=$(aws elbv2 describe-load-balancers \
+            --query "LoadBalancers[?starts_with(LoadBalancerName, 'wafops-')].LoadBalancerName" --output text)
+          if [ -n "$albs" ]; then echo "$albs"; found=1; fi
+
+          echo "== CloudFront distributions =="
+          dists=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?contains(Comment, 'WAF Ops Platform')].Id" --output text 2>/dev/null || true)
+          if [ -n "$dists" ]; then echo "$dists"; found=1; fi
+
+          if [ "$found" -eq 1 ]; then
+            echo "::error::Billable resources are still running. Expected nothing at rest -- run 'make destroy'."
+            exit 1
+          fi
+          echo "Clean. Nothing running."

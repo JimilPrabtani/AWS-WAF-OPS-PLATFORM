@@ -1,0 +1,40 @@
+id: scanner_sweep
+name: Directory enumeration sweep
+severity: medium
+mitre: T1595.003  # Active Scanning: Wordlist Scanning
+
+rationale: >
+  Automated scanners request many distinct non-existent paths from a single
+  source in a short window. Counting DISTINCT URIs per client IP is what
+  separates this from a normal user, who revisits a small set of paths
+  repeatedly. Counting total requests instead would flag any busy legitimate
+  visitor.
+
+query: |
+  fields @timestamp, httpRequest.clientIp as ip, httpRequest.uri as uri
+  | filter action = "BLOCK" or terminatingRuleId != "Default_Action"
+  | stats count_distinct(uri) as paths, count(*) as hits by ip, bin(5m)
+  | filter paths > 25
+  | sort paths desc
+
+# CloudWatch metric filter equivalent, used to raise an alarm rather than only
+# being queryable after the fact.
+metric_filter_pattern: '{ $.action = "BLOCK" }'
+
+threshold:
+  distinct_paths: 25
+  window: 5m
+
+tuning_notes: >
+  TODO - replace this with a measured value. The procedure: run the benign
+  traffic suite against dev for an hour, query the maximum distinct-path count
+  per IP per 5 minutes, and set the threshold above that with headroom. A
+  threshold you cannot justify from data is the thing this file exists to avoid.
+
+false_positives:
+  - Search engine crawlers. Mitigate by exempting verified crawler ranges.
+  - Site-wide link checkers run by the site owner.
+  - The project's own attack suite, which is why dev alarms are set loose.
+
+response: >
+  Add the source address to the blocked IP set with a 24 hour TTL, then review.

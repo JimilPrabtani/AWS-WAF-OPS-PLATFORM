@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars (gitignored) and fill in.
+
+# After each envs/prod apply, add the fresh CloudFront domain and re-apply
+# this root (in-place client update, seconds).
+callback_urls = [
+  "http://localhost:5173/login",
+  # "https://d111111abcdef8.cloudfront.net/login",
+]
+logout_urls = [
+  "http://localhost:5173/",
+  # "https://d111111abcdef8.cloudfront.net/",
+]
+
+# Google federated sign-in (optional; omit both to disable).
+# google_client_id     = "1234567890-abc.apps.googleusercontent.com"
+# google_client_secret = "GOCSPX-..."

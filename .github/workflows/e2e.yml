@@ -1,0 +1,75 @@
+# The gate that makes this project more than a set of templates.
+#
+# Deploy an ephemeral dev environment, attack it, verify that legitimate traffic
+# still gets through, tear it down. A WAF change that breaks real traffic fails
+# the build.
+#
+# The destroy step uses if:always() so a failed test can never leave billable
+# resources running.
+name: e2e
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # Monday morning, so a broken rule set surfaces weekly
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    environment: dev
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_APPLY_ROLE }}
+          aws-region: us-east-1
+          role-session-name: gha-e2e-${{ github.run_id }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: "1.11.4"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - run: pip install -e ./wafops
+
+      - name: Deploy dev
+        run: |
+          terraform -chdir=envs/dev init -input=false
+          terraform -chdir=envs/dev apply -auto-approve
+
+      # The ALB is reachable in well under a minute, but WAF rule propagation
+      # is eventually consistent and needs a moment to settle.
+      - name: Wait for the WAF to take effect
+        run: sleep 60
+
+      - name: Attack suite
+        run: wafops attack run --env dev --report reports/attack.json
+
+      - name: Legitimate traffic suite
+        # The one that actually matters. Blocking attacks is easy; not blocking
+        # customers is the hard part.
+        run: wafops falsepos run --env dev --report reports/falsepos.json
+
+      - name: Evidence bundle
+        if: always()
+        run: wafops report generate --env dev --out reports/evidence.json
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-reports
+          path: reports/
+
+      - name: Destroy
+        if: always()
+        run: terraform -chdir=envs/dev destroy -auto-approve
