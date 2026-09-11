@@ -57,10 +57,6 @@ class Probe:
     detail: str
     elapsed_ms: float | None = None
 
-    @property
-    def is_error(self) -> bool:
-        return self.verdict is Verdict.ERROR
-
 
 def classify(response: requests.Response) -> Probe:
     """Classify a response that actually came back."""

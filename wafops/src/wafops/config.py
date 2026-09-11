@@ -30,8 +30,8 @@ class EnvConfig:
     web_acl_capacity: int | None
 
 
-def repo_root(start: Path | None = None) -> Path:
-    here = (start or Path.cwd()).resolve()
+def repo_root() -> Path:
+    here = Path.cwd().resolve()
     for candidate in [here, *here.parents]:
         if (candidate / "envs").is_dir() and (candidate / "modules").is_dir():
             return candidate

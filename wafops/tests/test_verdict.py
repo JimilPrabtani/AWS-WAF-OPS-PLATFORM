@@ -52,7 +52,6 @@ def test_connection_error_is_an_error_not_a_block(monkeypatch):
 
     result = probe(Boom(), "GET", "https://example.invalid/")
     assert result.verdict is Verdict.ERROR
-    assert result.is_error
 
 
 def test_timeout_is_an_error_not_a_block():
