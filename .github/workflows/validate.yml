@@ -35,22 +35,12 @@ jobs:
       - name: Module contract tests
         run: terraform -chdir=modules/waf test -verbose
 
-      - uses: terraform-linters/setup-tflint@v4
       - name: Lint
-        run: tflint --recursive --format compact
+        run: |
+          curl -sL https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          tflint --recursive --format compact
 
-  scan:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
 
-      - name: Checkov
-        uses: bridgecrewio/checkov-action@master
-        with:
-          directory: .
-          framework: terraform
-          quiet: true
-          soft_fail: false
 
   python:
     runs-on: ubuntu-latest

@@ -2,7 +2,7 @@
 
 # Where security findings and the budget alert land. AWS emails a subscription
 # confirmation -- click it or nothing ever arrives.
-# alarm_email = "you@example.com"
+# alarm_email = "jimilprabtani0816@gmail.com"
 
 # Account-wide monthly cost ceiling for the budget alert (USD).
 monthly_budget_usd = 5

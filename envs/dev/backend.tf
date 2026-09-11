@@ -3,7 +3,7 @@ terraform {
     # Fill these in from `terraform -chdir=bootstrap output`, then run
     # `terraform init`. Backend blocks cannot use variables -- that is a
     # Terraform limitation, not an oversight.
-    bucket = "REPLACE_ME_STATE_BUCKET"
+    bucket = "wafops-tfstate-123209654419"
     key    = "envs/dev/terraform.tfstate"
     region = "us-east-1"
 

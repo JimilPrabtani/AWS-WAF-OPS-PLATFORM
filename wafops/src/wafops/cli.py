@@ -1,4 +1,5 @@
-"""wafops command line."""
+"""wafops CLI adapter — thin adapter at the seam; deep implementation lives in suites/verdict."""
+# ponytail: adapter is thin; complexity hidden in suites.py (deep module). Two adapters (HTTP + in-memory) justify this seam.
 
 from __future__ import annotations
 
