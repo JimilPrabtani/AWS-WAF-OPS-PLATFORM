@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from importlib import resources
 from pathlib import Path
 from urllib.parse import urlparse
@@ -157,7 +157,7 @@ def verify_origin_bypass(config: EnvConfig) -> Result:
 
 def write_report(path: Path, config: EnvConfig, sections: dict[str, list[Result]]) -> dict:
     payload = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "environment": config.env,
         "target_url": config.target_url,
         "web_acl": config.web_acl_name,

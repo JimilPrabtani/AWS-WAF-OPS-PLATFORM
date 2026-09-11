@@ -52,6 +52,7 @@ def load_env(env: str, root: Path | None = None) -> EnvConfig:
         [binary, f"-chdir={chdir}", "output", "-json"],
         capture_output=True,
         text=True,
+        check=False,  # returncode is inspected below; never raise here
     )
     if result.returncode != 0:
         raise ConfigError(

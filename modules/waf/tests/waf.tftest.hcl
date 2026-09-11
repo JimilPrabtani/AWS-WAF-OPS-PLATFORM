@@ -1,10 +1,15 @@
 # Native Terraform tests (terraform test / tofu test).
 #
 # These assert the module's CONTRACT -- the invariants that must hold before a
-# plan is ever produced. They need `terraform init` for the provider but never
-# create real infrastructure, because every run block uses `command = plan`.
+# plan is ever produced. They run with a mocked AWS provider and never touch
+# real infrastructure: the validate job has no AWS credentials (offline by
+# design), and `command = plan` alone does NOT avoid that -- the real provider
+# still demands credentials at plan time. Every assertion below only touches
+# values known at plan (rule counts, names, variable validations).
 #
 # Run with:  terraform test -verbose
+
+mock_provider "aws" {}
 
 variables {
   name  = "wafops-test"
@@ -37,7 +42,10 @@ run "builds_the_expected_rule_count" {
   command = plan
 
   assert {
-    condition     = length(aws_wafv2_web_acl.this.rule) == 2
+    # output.rule_summary is a pure function of var.rules, so it is known at
+    # plan; the resource's own `rule` set embeds computed ARNs and is not.
+    # The plan above this assertion still proves the dynamic blocks expand.
+    condition     = length(output.rule_summary) == 2
     error_message = "Every rule in var.rules must appear in the Web ACL."
   }
 }
