@@ -9,9 +9,8 @@
 name: drift
 
 on:
-  workflow_dispatch:
-  schedule:
-    - cron: "0 3 * * *"
+  push:
+    branches: [main]
 
 permissions:
   contents: read
